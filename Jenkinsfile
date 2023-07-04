@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    environment {
+        VERSION="${env.BUILD_ID}"
+    }
     stages{
         stage("Sonar Quality Check"){
             agent {
@@ -20,6 +23,20 @@ pipeline {
                            error "Pipeline aborted due to quality gate failure: ${qg.status}"
                       }
                     }
+                }
+            }
+        }
+        stage ("docker build & docker push") {
+            steps {
+                script {
+                   withCredentials([string(credentialsId: 'docker_pass', variable: 'docker_password')]) {
+                        sh '''
+                            docker build -t 34.28.133.24:8083/springapp:${VERSION} .
+                            docker login -u admin -p ${docker_password} 34.28.133.24:8083
+                            docker push 34.28.133.24:8083/springapp:${VERSION}
+                            docker rmi 34.28.133.24:8083/springapp:${VERSION}
+                        '''
+                   }
                 }
             }
         }
